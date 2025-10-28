@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { Layout, Menu, Divider, Table, Button, Modal, Form, Input, Select, message } from "antd";
 import { MenuOutlined, PlusOutlined } from "@ant-design/icons";
 import Link from "next/link";
@@ -19,9 +18,11 @@ export default function Home() {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("/api/students");
-      setStudents(res.data.body.data);
-      console.log(res.data)
+      const res = await fetch("/api/students", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to fetch data");
+      const data = await res.json();
+
+      setStudents(data.body?.data || []);
     } catch (error) {
       console.error("Fetch error:", error);
       message.error("Gagal mengambil data siswa");
@@ -34,23 +35,28 @@ export default function Home() {
     fetchStudents();
   }, []);
 
- 
+  
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      await axios.post("/api/students", values, {
 
+      const res = await fetch("/api/students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
       });
-      message.success("Berhasil");
+
+      if (!res.ok) throw new Error("Gagal menambah data siswa");
+
+      message.success("Siswa berhasil ditambahkan!");
       setIsModalOpen(false);
       form.resetFields();
-      fetchStudents(); 
+      fetchStudents();
     } catch (error) {
-      console.error(error);
-      message.error("Gagal");
+      console.error("Submit error:", error);
+      message.error("Gagal menambah siswa");
     }
   };
-
 
   const columns = [
     { title: "Name", dataIndex: "name", key: "name" },
@@ -61,6 +67,7 @@ export default function Home() {
 
   return (
     <Layout>
+    
       <Sider
         style={{ backgroundColor: "black", color: "white", height: "150vh" }}
         collapsed={!open}
@@ -73,6 +80,7 @@ export default function Home() {
         />
       </Sider>
 
+      
       <Layout>
         <Header style={{ backgroundColor: "black", color: "white" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "30px" }}>
@@ -85,6 +93,7 @@ export default function Home() {
           <div>
             <p style={{ fontSize: "50px" }}>Student List</p>
             <Divider />
+
             <Button
               type="primary"
               icon={<PlusOutlined />}
